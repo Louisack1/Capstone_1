@@ -1,0 +1,262 @@
+---
+title: "HOME CREDIT DEFAULT RISK - EXPLORATORY DATA ANALYSIS (EDA)"
+author: "Louis Ackumey"
+date: "2023-10-06"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## INTRODUCTION
+
+Welcome to the Exploratory Data Analysis (EDA) of the Home Credit Default Risk data set. In this analysis, I'm exploring and visualize the data set to gain insights into credit default risk.
+
+## Exploring Target Variable and Checking for Class Imbalance:
+
+```{r application_train data}
+# Loading the necessary libraries and read the data
+library(dplyr)
+library(naniar)
+library(gridExtra)
+
+data <- read.csv("C:/Users/ackum/Downloads/application_train.csv")
+
+#summary(data)
+
+
+# Viewing all columns in the dataset
+column_names <- names(data)
+
+
+# Identify numerical columns in the dataset
+numerical_columns_data <- names(data[sapply(data, is.numeric)])
+
+
+# Check the distribution of the target variable
+table(data$TARGET)
+
+# Calculate the proportion of each class
+prop.table(table(data$TARGET))
+
+# Calculate the accuracy for a majority class classifier
+majority_class_accuracy <- max(prop.table(table(data$TARGET)))
+
+```
+## Exploring the relationship between target and predictors but first separating the categorical variables from the numeric variable:
+
+```{r, message = TRUE}
+# Selecting the numeric predictive variables from the train data set
+numeric_variables <- data %>%
+  select_if(is.numeric)
+
+# Select categorical variables
+categorical_variables <- data %>%
+  select_if(function(x) is.factor(x) || is.character(x))
+
+# Calculate the correlations between "TARGET" and numeric predictors
+correlations <- cor(numeric_variables, numeric_variables$TARGET)
+
+# Create a data frame for the correlations
+correlation_df <- data.frame(Variable = colnames(numeric_variables), Correlation = correlations)
+
+# Sorting the data frame by the absolute correlation in descending order
+correlation_df <- correlation_df %>%
+  arrange(desc(abs(Correlation)))
+
+#correlation_df
+
+
+# Calculate the correlation matrix for all numeric variables
+correlation_matrix <- cor(numeric_variables, use = "pairwise.complete.obs")
+
+
+# Rounding the correlation matrix values to two decimal places
+correlation_matrix_rounded <- round(correlation_matrix, 4)
+
+# Print the rounded correlation matrix
+#View(correlation_matrix_rounded)
+
+```
+>> The code segment above is dedicated to exploring the interplay between the numeric variables, aiming to detect and resolve potential multicollinearity in my model.
+
+
+```{r}
+library(skimr)
+library(janitor)
+# Using the skimr to generate summary statistics and data summaries
+#skim(data)
+
+# Using janitor to clean data (e.g., remove special characters from column names)
+data <- data %>%
+  clean_names()
+
+```
+
+## Checking the missing values in the train dataset
+```{r}
+library(dplyr)
+library(tidyr) 
+
+# Calculate the sum of missing values for each column in numerical data
+missing_data <- data %>%
+  summarise_all(~sum(is.na(.))) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "MissingSum")
+
+
+# Sorting the missing_data from the dataset by MissingSum in descending order
+missing_data_sorted <- missing_data %>%
+  arrange(desc(MissingSum))
+
+# The top 20 columns with the most missing values
+top_20_missing_data <- head(missing_data_sorted, 20)
+
+
+####### To remove columns with a high proportion of missing data:
+#data <- data %>% select(-column_with_high_missing_data)
+
+```
+
+
+## Setting threshold for the missing values in the data set 
+```{r message = FALSE}
+# Load necessary library
+library(dplyr)
+
+# Setting a threshold for the maximum allowed missing values
+threshold <- 200000
+
+# Calculate the count of missing values for each column
+missing_counts <- sapply(numeric_variables, function(x) sum(is.na(x)))
+#View(missing_counts)
+
+# Identify columns where missing counts exceed the threshold
+columns_to_remove <- names(missing_counts[missing_counts >= threshold])
+#columns_to_remove
+
+# Remove the identified columns from the data set
+data_filtered <- numeric_variables %>%
+  select(-one_of(columns_to_remove))
+
+#View(data_filtered)
+
+```
+
+>>  The code chunk above defines a threshold for acceptable missing values, calculates the count of missing values in each dataset column, identifies and records columns exceeding the threshold, and finally removes those identified columns from the dataset. This process is a crucial step in data preprocessing, ensuring that columns with an excessive amount of missing data are excluded from further analysis to maintain data quality and integrity.
+
+
+```{r message = FALSE}
+# Load necessary library
+library(dplyr)
+
+# Assuming "data" is your data set and "threshold" is defined as the maximum allowed missing values
+
+data_imputed <- data_filtered %>%
+  select_if(is.numeric) %>%
+  mutate_all(~ ifelse(sum(is.na(.)) >= threshold, ., mean(., na.rm = TRUE)))
+
+# Combine the imputed numeric columns with the non-numeric columns
+data_final <- bind_cols(data_filtered %>% select_if(function(x) !is.numeric(x)), data_imputed)
+
+# Print the head of the final data set
+View(data_final)
+
+```
+
+
+## Scatterplots to visualize the relationships between each numeric variables in the dataset and the target variable "TARGET"
+
+```{r message = FALSE}
+library(ggplot2)
+library(gridExtra)
+
+# Creating scatter plots for all numeric variables against the 'TARGET' variable
+scatterplots <- lapply(names(numeric_variables), function(var) {
+  ggplot(data = numeric_variables, aes(x = numeric_variables[[var]], y = TARGET)) +
+    geom_point() +
+    labs(title = paste("Scatterplot of", var, "vs TARGET"))
+})
+
+# Arranging the scatter plots in a grid
+grid.arrange(grobs = scatterplots, ncol = 3) # Adjust the number of columns as needed
+
+```
+
+
+```{r message = FALSE}
+# Creating boxplots for all numeric variables against the 'TARGET' variable
+boxplots <- lapply(names(numeric_variables), function(var) {
+  ggplot(data = numeric_variables, aes(x = TARGET, y = numeric_variables[[var]])) +
+    geom_boxplot() +
+    labs(title = paste("Boxplot of", var, "vs TARGET"))
+})
+
+# Arranging the boxplots in a grid
+grid.arrange(grobs = boxplots, ncol = 3) 
+
+# Define a function to remove extreme outliers based on IQR
+remove_outliers <- function(numeric_variables, variable, multiplier = 1.5) {
+  q1 <- quantile(numeric_variables[[variable]], 0.25)
+  q3 <- quantile(numeric_variables[[variable]], 0.75)
+  iqr <- q3 - q1
+  upper_limit <- q3 + multiplier * iqr
+  lower_limit <- q1 - multiplier * iqr
+  data_filtered <- numeric_variables[numeric_variables[[variable]] >= lower_limit & data[[variable]] <= upper_limit, ]
+  return(data_filtered)
+}
+
+# Define the multiplier for outlier removal (e.g., 1.5 for moderate outliers)
+outlier_multiplier <- 1.5
+
+# Remove extreme outliers for each numeric variable
+for (var in names(numeric_variables)) {
+  numeric_variables <- remove_outliers(numeric_variables, var, outlier_multiplier)
+}
+
+
+```
+
+
+
+## Joining application data to transaction data
+
+```{r, message=FALSE}
+# Assuming you want to join application_train.csv with bureau.csv
+#bureau_data <- read.csv("bureau.csv")
+
+# Aggregating transactional data to match the grain of application data (e.g., mean or sum)
+#bureau_agg <- bureau_data %>%
+ # group_by(SK_ID_CURR) %>%
+  #summarise(avg_transaction_amount = mean(transaction_amount))
+
+# Join application data with aggregated transactional data
+#data <- data %>%
+ # left_join(bureau_agg, by = "SK_ID_CURR")
+
+
+```
+
+
+
+```{r message = FALSE}
+
+
+```
+
+
+
+```{r message = FALSE}
+
+```
+
+
+
+
+>> Conclusion
+In this EDA report, we've explored the Home Credit Default Risk dataset and gained initial insights into the data. Further analysis and modeling can be performed based on these findings.
+
+
