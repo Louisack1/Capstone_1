@@ -1,0 +1,126 @@
+---
+title: "Gradient Booster Model"
+author: "Louis Ackumey"
+date: "2023-11-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(xgboost)
+library(caret)
+library(pROC)
+library(ROCR)
+library(magrittr)
+library(tictoc)
+
+
+# Load the clean training and test datasets
+clean_train <- read.csv("C:/Users/ackum/Downloads/HomeCreditProject/clean_train.csv")
+clean_test <- read.csv("C:/Users/ackum/Downloads/HomeCreditProject/clean_test.csv")
+
+
+# List of column names to remove for clean_train data set
+columns_to_remove <- c("NAME_CONTRACT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR", "FLAG_OWN_REALTY", "NAME_INCOME_TYPE", "NAME_EDUCATION_TYPE", "DAYS_BIRTH", "DAYS_REGISTRATION", "DAYS_ID_PUBLISH", "DAYS_EMPLOYED")
+
+# Create a new data frame without the specified columns
+clean_train_filtered <- clean_train[, !names(clean_train) %in% columns_to_remove]
+clean_train_filtered
+
+###
+clean_train_filtered$TARGET <- factor(clean_train_filtered$TARGET)
+
+
+# List of column names to remove for clean_test data set
+columns_to_remove_test <- c("NAME_CONTRACT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR", "FLAG_OWN_REALTY", "NAME_INCOME_TYPE", "NAME_EDUCATION_TYPE", "DAYS_BIRTH", "DAYS_REGISTRATION", "DAYS_ID_PUBLISH", "DAYS_EMPLOYED", "SK_ID_CURR")
+
+# Create a new data frame without the specified columns in the test dataset
+clean_test_filtered <- clean_test[, !names(clean_test) %in% columns_to_remove_test]
+
+# Add a column to the clean_test_filtered data set
+clean_test_filtered$TARGET <- NA
+#View(clean_test_filtered)
+
+
+
+##########################
+# Random search
+modelLookup("xgbTree")
+set.seed(123)
+cv <- trainControl(method = "repeatedcv",
+                   number = 3,
+                   repeats = 2,
+                   allowParallel = T,
+                   verboseIter = F,
+                   search = 'random',
+                   sampling = 'up')
+
+tic()
+
+set.seed(123)
+boo <- train(TARGET ~., data = clean_train_filtered,
+             trControl = cv,
+             method = "xgbTree",
+             tuneLength = 500,
+             metric = 'Kappa')
+
+toc()
+
+boo
+#Confusion matrix
+p <- predict(boo, newdata = clean_train_filtered, 'raw')
+(tab <- table(predicted = p, Actual = clean_train_filtered$TARGET))
+p1 <- predict(boo, newdata = clean_test_filtered, 'raw')
+(tab1 <- table(predicted = p1, Actual = clean_test_filtered$TARGET))
+
+# Submission
+p2 <- predict(boo, newdata = clean_test_filtered, 'prob')
+p2 <- p2[, -1]
+
+submission <- clean_test_filtered$TARGET
+submission <- data.frame(submission)
+submission$predicted <- p2
+colnames(submission) <- c('TARGET', 'predicted')
+write.csv(submission, 'submission.csv', row.names = F)
+
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+
+```
+
+```{r pressure, echo=FALSE}
+
+```
+
+```{r pressure, echo=FALSE}
+
+```
+
+```{r pressure, echo=FALSE}
+
+```
+
+```{r pressure, echo=FALSE}
+
+```
+
+```{r pressure, echo=FALSE}
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+```
+
+
