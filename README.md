@@ -45,9 +45,10 @@ REGION_RATING_CLIENT_W_CITY 
 NAME_CONTRACT_TYPERevolving loans 
 FLAG_DOCUMENT_3
 log_AMT_CREDIT 
-![image](https://github.com/Louisack1/Capstone_1/assets/144054790/492a7346-3c9f-40c8-be99-6114a692dbd9)
 
+## Role:
 
+My involvement in the project encompassed the creation of the Gradient Boost model, drafting the report, and assisting in developing the PowerPoint presentation.
 
 ## Challenges:
 
