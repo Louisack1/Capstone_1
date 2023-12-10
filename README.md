@@ -44,6 +44,9 @@ NAME_CONTRACT_TYPERevolving loans 
 FLAG_DOCUMENT_3
 log_AMT_CREDIT 
 
+![Important_Predictors](https://github.com/Louisack1/Capstone_1/assets/144054790/00da8441-54d0-4530-9ae4-eadfa466b3a9)
+
+
 ## Role:
 
 My involvement in the project encompassed the creation of the Gradient Boost model, drafting the report, and assisting in developing the PowerPoint presentation.
