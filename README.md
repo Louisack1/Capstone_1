@@ -27,6 +27,9 @@ Since many prospective borrowers lack established credit histories, loans are un
   - Logistic Regression      .732            .724
   - Naive Bayes              .578             NA
 
+![Uploading image.png…]()
+
+
 The logistic regression algorithm was our team's choice, given its exceptional accuracy in predicting outcomes, resulting in an impressive accuracy score exceeding 0.732 and a Kaggle score above 0.724. This success initiated a thoughtful discussion about the equilibrium between approving loans and minimizing defaults. 
 However, our model initially displayed an underprediction of ruins compared to the actual outcomes in our training data, emphasizing the need to enhance the representation of default cases and navigate the trade-off between precision and minority class representation. Our comprehensive analysis pinpointed key variables crucial for forecasting loan repayment, guiding us to concentrate on gathering the most predictive data for future loan processing.
 
